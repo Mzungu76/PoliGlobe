@@ -1,11 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  reactStrictMode: true,
   experimental: {
-    optimizePackageImports: ["resium"]
-  },
-  env: {
-    CESIUM_BASE_URL: "/cesium"
+    typedRoutes: false
   }
 };
 

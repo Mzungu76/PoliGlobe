@@ -1,44 +1,31 @@
-# GeoPulse starter
+# GeoPulse starter v2
 
-Concrete starter for a 3-step build:
+Base Next.js + Cesium + OpenAI per una app geopolitica con Top 5 interpretativi.
 
-- Step 1: real multi-source ingestion + OpenAI analytical core
-- Step 2: strong Cesium UI with Top 5 already interpreted
-- Step 3: hardening, scheduling, observability
+## Cosa fa già
 
-## Implemented now
+- interroga più fonti reali: ACLED, World Bank, UN Comtrade, GDELT
+- normalizza i segnali in uno schema unico
+- raggruppa i segnali per cluster geografico/politico
+- chiede a OpenAI di produrre 5 risultati interpretativi
+- salva un cache snapshot locale in `data/latest-top5.json`
+- visualizza i risultati su globo Cesium
 
-- `/api/top5` route
-- `/api/system/status` route
-- real source connectors for ACLED, World Bank, UN Comtrade, GDELT
-- signal normalization and clustering
-- OpenAI-driven Top 5 generation with JSON schema output
-- fallback mode when OpenAI key is missing
-- Cesium/Resium homepage consuming the Top 5
+## API interne
 
-## Environment
+- `GET /api/top5` → restituisce snapshot corrente
+- `POST /api/refresh` → forza rigenerazione
+- `GET /api/system/status` → stato fonti + cache
 
-Copy `.env.example` to `.env.local` and set keys.
+## Avvio
 
-## Important
+1. copia `.env.example` in `.env.local`
+2. inserisci le chiavi disponibili
+3. installa dipendenze
+4. esegui `npm run dev`
 
-- ACLED now requires credentials/OAuth-related access in its documented workflow.
-- UN Comtrade requires an API key.
-- World Bank is public.
-- GDELT is public and near-real-time.
+## Note importanti
 
-## Why these sources
-
-This starter prioritizes sources with public documentation and programmatic access:
-- ACLED API docs: https://acleddata.com/acled-api-documentation
-- World Bank Indicators API docs: https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation
-- UN Comtrade portal: https://comtrade.un.org/
-- GDELT data docs: https://www.gdeltproject.org/data.html
-
-## Next hardening tasks
-
-- replace coarse spatial clustering with graph-based regional clustering
-- add explicit energy chokepoint dataset and pipeline
-- persist snapshots to blob/db
-- add cron or queue refresh
-- tune AI prompts with second-pass critique
+- senza `OPENAI_API_KEY` l'app va in fallback ranking
+- senza chiavi ACLED e UN Comtrade quelle fonti vengono segnate come `missing`
+- Cesium qui è integrato come superficie visiva; la parte cruciale resta il motore `/api/top5`

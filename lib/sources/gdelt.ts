@@ -1,59 +1,53 @@
 import type { Signal, SourceStatus } from "@/lib/types/geopolitics";
 
-export async function fetchGdeltSignals(): Promise<{ signals: Signal[]; status: SourceStatus }> {
-  const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
-  url.searchParams.set("query", '("energy" OR "oil" OR "gas") AND ("conflict" OR "sanctions" OR "pipeline" OR "shipping")');
-  url.searchParams.set("mode", "ArtList");
-  url.searchParams.set("format", "json");
-  url.searchParams.set("maxrecords", "50");
-  url.searchParams.set("timespan", "7d");
-  url.searchParams.set("sort", "datedesc");
+const queries = [
+  { q: '(energy OR oil OR gas OR pipeline) sourcelang:english', label: 'Energy disruption media pulse' },
+  { q: '(strait OR chokepoint OR shipping OR red sea OR hormuz) sourcelang:english', label: 'Chokepoint media pulse' }
+];
 
-  const response = await fetch(url.toString(), { next: { revalidate: 900 } });
-  if (!response.ok) {
+export async function fetchGdeltSignals(): Promise<{ signals: Signal[]; status: SourceStatus }> {
+  try {
+    const signals: Signal[] = [];
+    for (let i = 0; i < queries.length; i += 1) {
+      const query = queries[i];
+      const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query.q)}&mode=artlist&maxrecords=25&format=json`;
+      const res = await fetch(url, { next: { revalidate: 900 } });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const articles = Array.isArray(json?.articles) ? json.articles : [];
+      articles.forEach((article: Record<string, unknown>, idx: number) => {
+        const tone = Math.abs(Number(article.seendate ?? 0));
+        signals.push({
+          id: `gdelt-${i}-${idx}`,
+          type: "media",
+          title: String(article.title ?? query.label),
+          summary: String(article.domain ?? "GDELT article signal"),
+          countries: [],
+          severity: Math.min(100, 15 + tone),
+          recencyHours: 12,
+          trend: "up",
+          source: { id: "gdelt", name: "GDELT", url: "https://www.gdeltproject.org/" },
+          tags: [query.label],
+          raw: article
+        });
+      });
+    }
+
     return {
-      signals: [],
+      signals,
       status: {
         id: "gdelt",
         name: "GDELT",
-        status: "failed",
-        recordCount: 0,
-        detail: `GDELT request failed with ${response.status}.`
+        status: signals.length ? "used" : "partial",
+        recordCount: signals.length,
+        detail: signals.length ? "Segnali mediatici ad alta frequenza caricati." : "Nessun segnale GDELT disponibile.",
+        lastSuccessAt: new Date().toISOString()
       }
     };
+  } catch (error) {
+    return {
+      signals: [],
+      status: { id: "gdelt", name: "GDELT", status: "failed", recordCount: 0, detail: error instanceof Error ? error.message : "Errore GDELT." }
+    };
   }
-
-  const json = await response.json();
-  const rows: Array<Record<string, unknown>> = json?.articles ?? [];
-  const signals: Signal[] = rows.map((row, index) => ({
-    id: `gdelt-${index}`,
-    type: "news",
-    title: String(row.title ?? "Energy-related coverage"),
-    summary: String(row.seendate ?? "") + " · " + String(row.sourcecountry ?? "") + " · " + String(row.domain ?? ""),
-    countries: row.sourcecountry ? [String(row.sourcecountry)] : [],
-    severity: 25,
-    recencyHours: 12,
-    trend: "up",
-    source: {
-      id: "gdelt",
-      name: "GDELT",
-      status: "live",
-      updatedAt: new Date().toISOString(),
-      url: "https://www.gdeltproject.org/data.html"
-    },
-    raw: row,
-    tags: ["media", "energy"]
-  }));
-
-  return {
-    signals,
-    status: {
-      id: "gdelt",
-      name: "GDELT",
-      status: "used",
-      recordCount: signals.length,
-      detail: signals.length ? "Near-real-time global coverage fetched." : "No recent GDELT coverage found.",
-      lastSuccessAt: new Date().toISOString()
-    }
-  };
 }

@@ -4,33 +4,39 @@ export type SignalCluster = {
   id: string;
   centroid: { lat: number; lon: number };
   countries: string[];
-  signals: Signal[];
   score: number;
+  signals: Signal[];
 };
 
-export function clusterSignals(signals: Signal[]): SignalCluster[] {
-  const geoSignals = signals.filter((s) => s.location);
-  const bins = new Map<string, Signal[]>();
+const defaultPoints: Record<string, { lat: number; lon: number }> = {
+  USA: { lat: 38, lon: -97 }, CHN: { lat: 35, lon: 103 }, RUS: { lat: 61, lon: 105 },
+  IRN: { lat: 32, lon: 53 }, SAU: { lat: 24, lon: 45 }, UKR: { lat: 49, lon: 32 },
+  DEU: { lat: 51, lon: 10 }, FRA: { lat: 46, lon: 2 }, IND: { lat: 21, lon: 78 }
+};
 
-  for (const signal of geoSignals) {
-    const latBin = Math.round((signal.location!.lat + 90) / 10);
-    const lonBin = Math.round((signal.location!.lon + 180) / 10);
-    const key = `${latBin}:${lonBin}`;
-    const arr = bins.get(key) ?? [];
-    arr.push(signal);
-    bins.set(key, arr);
+function scoreSignal(signal: Signal): number {
+  return signal.severity + Math.max(0, 72 - signal.recencyHours) * 0.4 + signal.tags.length * 2;
+}
+
+export function clusterSignals(signals: Signal[]): SignalCluster[] {
+  const buckets = new Map<string, Signal[]>();
+  for (const signal of signals) {
+    const key = signal.countries[0] ?? "GLOBAL";
+    const list = buckets.get(key) ?? [];
+    list.push(signal);
+    buckets.set(key, list);
   }
 
-  return Array.from(bins.entries()).map(([id, binSignals]) => {
-    const lat = binSignals.reduce((sum, s) => sum + (s.location?.lat ?? 0), 0) / binSignals.length;
-    const lon = binSignals.reduce((sum, s) => sum + (s.location?.lon ?? 0), 0) / binSignals.length;
-    const score = binSignals.reduce((sum, s) => sum + s.severity * (1 / Math.max(1, s.recencyHours / 24)), 0);
+  return Array.from(buckets.entries()).map(([country, grouped]) => {
+    const located = grouped.filter((s) => s.location);
+    const lat = located.length ? located.reduce((a, s) => a + (s.location?.lat ?? 0), 0) / located.length : (defaultPoints[country]?.lat ?? 20);
+    const lon = located.length ? located.reduce((a, s) => a + (s.location?.lon ?? 0), 0) / located.length : (defaultPoints[country]?.lon ?? 0);
     return {
-      id,
+      id: `cluster-${country}`,
       centroid: { lat, lon },
-      countries: [...new Set(binSignals.flatMap((s) => s.countries))],
-      signals: binSignals,
-      score
+      countries: country === "GLOBAL" ? [] : [country],
+      score: grouped.reduce((a, s) => a + scoreSignal(s), 0),
+      signals: grouped.sort((a, b) => scoreSignal(b) - scoreSignal(a)).slice(0, 15)
     };
-  }).sort((a, b) => b.score - a.score);
+  }).sort((a, b) => b.score - a.score).slice(0, 20);
 }

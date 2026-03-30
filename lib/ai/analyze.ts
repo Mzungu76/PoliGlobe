@@ -4,67 +4,62 @@ import { env } from "@/lib/config/env";
 import type { SourceStatus, Top5Response } from "@/lib/types/geopolitics";
 import type { SignalCluster } from "@/lib/pipeline/cluster";
 
-const outputSchema = z.object({
-  items: z.array(
-    z.object({
-      id: z.string(),
-      category: z.enum(["tensions", "fragilities", "influence", "correlations", "watchlist"]),
-      title: z.string(),
-      explanation: z.string(),
-      confidence: z.number().min(0).max(1),
-      historicalParallel: z.string().optional(),
-      countries: z.array(z.string()),
-      coordinates: z.array(z.object({ lat: z.number(), lon: z.number(), weight: z.number().optional() })),
-      factors: z.array(z.string()),
-      sourceSignalIds: z.array(z.string())
-    })
-  ).length(5)
+const schema = z.object({
+  items: z.array(z.object({
+    id: z.string(),
+    category: z.enum(["tensions", "fragilities", "influence", "correlations", "watchlist"]),
+    title: z.string(),
+    explanation: z.string(),
+    confidence: z.number().min(0).max(1),
+    historicalParallel: z.string().optional(),
+    countries: z.array(z.string()),
+    coordinates: z.array(z.object({ lat: z.number(), lon: z.number(), weight: z.number().optional() })),
+    factors: z.array(z.string()),
+    sourceSignalIds: z.array(z.string())
+  })).length(5)
 });
 
-function buildFallback(clusters: SignalCluster[], sources: SourceStatus[]): Top5Response {
-  const items = clusters.slice(0, 5).map((cluster, index) => ({
-    id: `fallback-${index}`,
-    category: ["fragilities", "tensions", "watchlist", "correlations", "influence"][index] as Top5Response["items"][number]["category"],
-    title: `Signal concentration around ${cluster.countries.slice(0, 3).join(", ") || cluster.id}`,
-    explanation: `Fallback ranking generated because OpenAI is not configured. Cluster score ${cluster.score.toFixed(1)} based on severity, recency and source overlap.`,
-    confidence: 0.35,
-    historicalParallel: "Historical comparison unavailable in fallback mode.",
-    countries: cluster.countries,
-    coordinates: [{ lat: cluster.centroid.lat, lon: cluster.centroid.lon, weight: 1 }],
-    factors: [...new Set(cluster.signals.map((s) => `${s.type}:${s.source.name}`))].slice(0, 5),
-    sourceSignalIds: cluster.signals.map((s) => s.id).slice(0, 12)
-  }));
-
+function fallback(clusters: SignalCluster[], sources: SourceStatus[]): Top5Response {
+  const categories = ["fragilities", "tensions", "watchlist", "correlations", "influence"] as const;
   return {
     generatedAt: new Date().toISOString(),
     mode: "fallback",
     sources,
-    items
+    items: clusters.slice(0, 5).map((cluster, index) => ({
+      id: `fallback-${cluster.id}`,
+      category: categories[index],
+      title: `Pressure around ${cluster.countries[0] ?? cluster.id}`,
+      explanation: `Classifica di fallback basata su concentrazione di segnali, recenza e severità. Punteggio cluster ${cluster.score.toFixed(1)}.`,
+      confidence: 0.32,
+      historicalParallel: "Confronto storico non disponibile in fallback.",
+      countries: cluster.countries,
+      coordinates: [{ lat: cluster.centroid.lat, lon: cluster.centroid.lon, weight: 1 }],
+      factors: [...new Set(cluster.signals.map((s) => `${s.type}:${s.source.name}`))].slice(0, 5),
+      sourceSignalIds: cluster.signals.map((s) => s.id).slice(0, 12)
+    }))
   };
 }
 
 export async function analyzeTop5(clusters: SignalCluster[], sources: SourceStatus[]): Promise<Top5Response> {
-  if (!env.OPENAI_API_KEY) return buildFallback(clusters, sources);
+  if (!env.OPENAI_API_KEY) return fallback(clusters, sources);
 
   const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
-  const clusterPayload = clusters.slice(0, 20).map((cluster) => ({
+  const payload = clusters.slice(0, 12).map((cluster) => ({
     id: cluster.id,
     centroid: cluster.centroid,
     countries: cluster.countries,
     score: cluster.score,
-    signalCount: cluster.signals.length,
-    signals: cluster.signals.slice(0, 12).map((signal) => ({
-      id: signal.id,
-      type: signal.type,
-      title: signal.title,
-      summary: signal.summary,
-      countries: signal.countries,
-      severity: signal.severity,
-      recencyHours: signal.recencyHours,
-      trend: signal.trend,
-      source: signal.source.name,
-      location: signal.location,
-      tags: signal.tags
+    signals: cluster.signals.map((s) => ({
+      id: s.id,
+      type: s.type,
+      title: s.title,
+      summary: s.summary,
+      countries: s.countries,
+      severity: s.severity,
+      recencyHours: s.recencyHours,
+      trend: s.trend,
+      source: s.source.name,
+      tags: s.tags
     }))
   }));
 
@@ -73,28 +68,23 @@ export async function analyzeTop5(clusters: SignalCluster[], sources: SourceStat
     input: [
       {
         role: "system",
-        content: [
-          {
-            type: "input_text",
-            text:
-              "You are the analytical core of a geopolitics application for journalists and analysts. Use only the supplied signals. Return exactly 5 items. Prioritize structural interpretation, cross-signal causality, chokepoints, energy exposure, shifts in influence, and emerging fragility. Do not invent external facts. If evidence is weak, lower confidence."
-          }
-        ]
+        content: [{
+          type: "input_text",
+          text: "You are the analytical core of a geopolitics application for journalists and analysts. Use only the supplied clusters and sources. Produce exactly five ranked findings. Favor energy, chokepoints, systemic fragility, influence shifts, and cross-region causal links. Be specific, concise, and non-generic. Never invent facts outside the payload."
+        }]
       },
       {
         role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: `Sources:\n${JSON.stringify(sources, null, 2)}\n\nClusters:\n${JSON.stringify(clusterPayload, null, 2)}\n\nReturn JSON matching the schema.`
-          }
-        ]
+        content: [{
+          type: "input_text",
+          text: `Sources:\n${JSON.stringify(sources, null, 2)}\n\nClusters:\n${JSON.stringify(payload, null, 2)}\n\nReturn JSON only.`
+        }]
       }
     ],
     text: {
       format: {
         type: "json_schema",
-        name: "top5_geopolitics",
+        name: "geopulse_top5",
         schema: {
           type: "object",
           additionalProperties: false,
@@ -140,13 +130,6 @@ export async function analyzeTop5(clusters: SignalCluster[], sources: SourceStat
     }
   });
 
-  const rawText = response.output_text;
-  const parsed = outputSchema.parse(JSON.parse(rawText));
-
-  return {
-    generatedAt: new Date().toISOString(),
-    mode: "live",
-    sources,
-    items: parsed.items
-  };
+  const parsed = schema.parse(JSON.parse(response.output_text));
+  return { generatedAt: new Date().toISOString(), mode: "live", sources, items: parsed.items };
 }

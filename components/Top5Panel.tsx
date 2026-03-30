@@ -2,29 +2,34 @@ import type { Top5Item } from "@/lib/types/geopolitics";
 
 export function Top5Panel({ items, activeId, onSelect }: { items: Top5Item[]; activeId?: string; onSelect: (id: string) => void }) {
   return (
-    <aside className="absolute left-6 top-6 z-20 w-[420px] max-w-[calc(100vw-3rem)] rounded-3xl border border-white/15 bg-black/45 p-4 text-white backdrop-blur-xl">
-      <div className="mb-4 flex items-center justify-between">
+    <aside className="panel" style={{ position: "absolute", left: 18, top: 18, width: 390, maxHeight: "calc(100vh - 36px)", overflow: "auto", borderRadius: 24, padding: 16, zIndex: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
         <div>
-          <div className="text-xs uppercase tracking-[0.25em] text-white/55">GeoPulse</div>
-          <h1 className="text-2xl font-semibold">Top 5 geopolitics</h1>
+          <div style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "#7dd3fc" }}>GeoPulse</div>
+          <div style={{ fontSize: 28, fontWeight: 700 }}>Top 5 globali</div>
         </div>
+        <div className="badge">AI ranked</div>
       </div>
-      <div className="space-y-3">
+      <div style={{ display: "grid", gap: 10 }}>
         {items.map((item, index) => {
           const active = item.id === activeId;
           return (
-            <button
-              key={item.id}
-              onClick={() => onSelect(item.id)}
-              className={`w-full rounded-2xl border p-3 text-left transition ${active ? "border-cyan-300/60 bg-cyan-400/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
-            >
-              <div className="mb-1 flex items-center gap-3">
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">{index + 1}</span>
-                <span className="text-[11px] uppercase tracking-[0.18em] text-white/55">{item.category}</span>
-                <span className="ml-auto text-xs text-white/45">{Math.round(item.confidence * 100)}%</span>
+            <button key={item.id} onClick={() => onSelect(item.id)} style={{
+              width: "100%",
+              textAlign: "left",
+              borderRadius: 18,
+              border: active ? "1px solid rgba(125,211,252,0.5)" : "1px solid rgba(255,255,255,0.08)",
+              background: active ? "rgba(14,116,144,0.22)" : "rgba(255,255,255,0.03)",
+              color: "white",
+              padding: 14,
+              cursor: "pointer"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 999, display: "grid", placeItems: "center", background: "rgba(125,211,252,0.14)", color: "#bae6fd", fontSize: 12, fontWeight: 700 }}>{index + 1}</div>
+                <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "#93c5fd" }}>{item.category}</div>
               </div>
-              <div className="mb-1 text-base font-medium leading-tight">{item.title}</div>
-              <div className="line-clamp-3 text-sm text-white/72">{item.explanation}</div>
+              <div style={{ fontSize: 17, lineHeight: 1.25, fontWeight: 650, marginBottom: 6 }}>{item.title}</div>
+              <div style={{ fontSize: 13, lineHeight: 1.45, color: "rgba(255,255,255,0.7)" }}>{item.explanation}</div>
             </button>
           );
         })}

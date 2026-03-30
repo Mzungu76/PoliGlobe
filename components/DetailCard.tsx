@@ -2,18 +2,29 @@ import type { Top5Item } from "@/lib/types/geopolitics";
 
 export function DetailCard({ item }: { item?: Top5Item }) {
   if (!item) return null;
+
   return (
-    <section className="absolute bottom-6 right-6 z-20 w-[540px] max-w-[calc(100vw-3rem)] rounded-3xl border border-white/15 bg-black/45 p-5 text-white backdrop-blur-xl">
-      <div className="mb-2 text-xs uppercase tracking-[0.22em] text-white/50">{item.category}</div>
-      <h2 className="mb-3 text-2xl font-semibold leading-tight">{item.title}</h2>
-      <p className="mb-4 text-sm leading-6 text-white/80">{item.explanation}</p>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {item.factors.map((factor) => (
-          <span key={factor} className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs text-white/70">{factor}</span>
-        ))}
+    <section className="panel" style={{ position: "absolute", right: 18, top: 18, width: 420, borderRadius: 24, padding: 18, zIndex: 20 }}>
+      <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "#93c5fd", marginBottom: 8 }}>{item.category}</div>
+      <h2 style={{ margin: 0, fontSize: 28, lineHeight: 1.1 }}>{item.title}</h2>
+      <p style={{ marginTop: 12, marginBottom: 16, color: "rgba(255,255,255,0.78)", lineHeight: 1.55 }}>{item.explanation}</p>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        <div className="badge">Confidenza {(item.confidence * 100).toFixed(0)}%</div>
+        <div className="badge">Paesi {item.countries.join(", ") || "n/d"}</div>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 12, letterSpacing: 1, textTransform: "uppercase", color: "#7dd3fc", marginBottom: 8 }}>Fattori</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {item.factors.map((factor) => (
+            <span className="badge" key={factor}>{factor}</span>
+          ))}
+        </div>
       </div>
       {item.historicalParallel ? (
-        <div className="text-sm text-white/65"><span className="text-white/45">Historical parallel:</span> {item.historicalParallel}</div>
+        <div>
+          <div style={{ fontSize: 12, letterSpacing: 1, textTransform: "uppercase", color: "#7dd3fc", marginBottom: 8 }}>Parallelo storico</div>
+          <div style={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.5 }}>{item.historicalParallel}</div>
+        </div>
       ) : null}
     </section>
   );

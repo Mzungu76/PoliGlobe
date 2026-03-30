@@ -1,10 +1,13 @@
-export type SignalType =
-  | "conflict"
-  | "energy"
-  | "trade"
-  | "macro"
-  | "logistics"
-  | "news";
+export type SourceStatus = {
+  id: string;
+  name: string;
+  status: "used" | "missing" | "failed" | "partial";
+  recordCount: number;
+  detail: string;
+  lastSuccessAt?: string;
+};
+
+export type SignalType = "conflict" | "energy" | "trade" | "media" | "macro";
 
 export type Signal = {
   id: string;
@@ -12,41 +15,16 @@ export type Signal = {
   title: string;
   summary: string;
   countries: string[];
-  location?: {
-    lat: number;
-    lon: number;
-    radiusKm?: number;
-    label?: string;
-  };
-  severity: number; // 0-100 normalized
+  location?: { lat: number; lon: number; radiusKm?: number; label?: string };
+  severity: number;
   recencyHours: number;
-  trend: "up" | "down" | "flat";
-  source: {
-    id: string;
-    name: string;
-    updatedAt?: string;
-    status: "live" | "fallback" | "unavailable";
-    url?: string;
-  };
-  raw?: Record<string, unknown>;
-  tags?: string[];
+  trend: "up" | "down" | "stable";
+  source: { id: string; name: string; url?: string };
+  tags: string[];
+  raw?: unknown;
 };
 
-export type SourceStatus = {
-  id: string;
-  name: string;
-  status: "used" | "missing" | "failed";
-  recordCount: number;
-  detail: string;
-  lastSuccessAt?: string;
-};
-
-export type Top5Category =
-  | "tensions"
-  | "fragilities"
-  | "influence"
-  | "correlations"
-  | "watchlist";
+export type Top5Category = "tensions" | "fragilities" | "influence" | "correlations" | "watchlist";
 
 export type Top5Item = {
   id: string;

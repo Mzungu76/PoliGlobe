@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { fetchAllSignals } from "@/lib/pipeline/fetchAll";
-
-export const revalidate = 300;
+import { readCachedTop5 } from "@/lib/cache/store";
 
 export async function GET() {
-  const { signals, sources } = await fetchAllSignals();
+  const cached = await readCachedTop5();
   return NextResponse.json({
-    generatedAt: new Date().toISOString(),
-    signalCount: signals.length,
-    sources
+    ok: true,
+    hasSnapshot: Boolean(cached),
+    generatedAt: cached?.generatedAt ?? null,
+    mode: cached?.mode ?? null,
+    sources: cached?.sources ?? []
   });
 }
