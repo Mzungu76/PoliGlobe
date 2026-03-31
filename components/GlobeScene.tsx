@@ -27,7 +27,7 @@ export function GlobeScene({ items, activeId }: { items: Top5Item[]; activeId?: 
         selectionIndicator={false}
         infoBox={false}
         skyBox={false}
-        skyAtmosphere
+        skyAtmosphere={false}
         shouldAnimate
         terrainProvider={undefined}
         scene3DOnly
