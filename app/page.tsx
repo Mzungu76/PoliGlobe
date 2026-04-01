@@ -9,33 +9,33 @@ import type { Top5Response } from "@/lib/types/geopolitics";
 
 const GlobeScene = dynamic(() => import("@/components/GlobeScene").then((m) => m.GlobeScene), {
   ssr: false,
-  loading: () => <div className="loading">Caricamento GeoPulse…</div>
+  loading: () => <div className="loading">Caricamento PoliGlobe…</div>
 });
 
 export default function HomePage() {
   const [data, setData] = useState<Top5Response | null>(null);
-  const [activeId, setActiveId] = useState<string | undefined>();
+  const [activeCode, setActiveCode] = useState<string | undefined>();
 
   useEffect(() => {
     fetch("/api/top5")
       .then((r) => r.json())
       .then((json: Top5Response) => {
         setData(json);
-        setActiveId(json.items[0]?.id);
+        setActiveCode(json.countryHotspots[0]?.countryCode);
       })
       .catch((error) => console.error("Failed to load top5", error));
   }, []);
 
-  const activeItem = useMemo(() => data?.items.find((item) => item.id === activeId), [data, activeId]);
+  const activeHotspot = useMemo(() => data?.countryHotspots.find((item) => item.countryCode === activeCode), [data, activeCode]);
 
-  if (!data) return <div className="loading">Caricamento GeoPulse…</div>;
+  if (!data) return <div className="loading">Caricamento PoliGlobe…</div>;
 
   return (
     <main className="appShell">
-      <GlobeScene items={data.items} activeId={activeId} />
-      <Top5Panel items={data.items} activeId={activeId} onSelect={setActiveId} />
-      <DetailCard item={activeItem} />
-      <StatusBar generatedAt={data.generatedAt} mode={data.mode} sources={data.sources} />
+      <GlobeScene hotspots={data.countryHotspots} connections={data.connections} activeCode={activeCode} />
+      <Top5Panel hotspots={data.countryHotspots} activeCode={activeCode} onSelect={setActiveCode} />
+      <DetailCard hotspot={activeHotspot} items={data.items} />
+      <StatusBar generatedAt={data.generatedAt} mode={data.mode} sources={data.sources} hotspotCount={data.countryHotspots.length} />
     </main>
   );
 }

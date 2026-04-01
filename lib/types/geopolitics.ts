@@ -39,9 +39,34 @@ export type Top5Item = {
   sourceSignalIds: string[];
 };
 
+export type CountryHotspot = {
+  countryCode: string;
+  countryName: string;
+  centroid: { lat: number; lon: number };
+  score: number;
+  dominantTitle: string;
+  dominantExplanation: string;
+  category: Top5Category;
+  categoryLabel: string;
+  confidence: number;
+  factors: string[];
+  relatedCountries: string[];
+  relatedItemIds: string[];
+  dominantWeight: number;
+};
+
+export type CountryConnection = {
+  fromCountry: string;
+  toCountry: string;
+  strength: number;
+  label: string;
+};
+
 export type Top5Response = {
   generatedAt: string;
   mode: "live" | "fallback";
   sources: SourceStatus[];
   items: Top5Item[];
+  countryHotspots: CountryHotspot[];
+  connections: CountryConnection[];
 };

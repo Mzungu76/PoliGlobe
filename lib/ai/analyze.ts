@@ -36,7 +36,9 @@ function fallback(clusters: SignalCluster[], sources: SourceStatus[]): Top5Respo
       coordinates: [{ lat: cluster.centroid.lat, lon: cluster.centroid.lon, weight: 1 }],
       factors: [...new Set(cluster.signals.map((s) => `${s.type}:${s.source.name}`))].slice(0, 5),
       sourceSignalIds: cluster.signals.map((s) => s.id).slice(0, 12)
-    }))
+    })),
+    countryHotspots: [],
+    connections: []
   };
 }
 
@@ -131,5 +133,5 @@ export async function analyzeTop5(clusters: SignalCluster[], sources: SourceStat
   });
 
   const parsed = schema.parse(JSON.parse(response.output_text));
-  return { generatedAt: new Date().toISOString(), mode: "live", sources, items: parsed.items };
+  return { generatedAt: new Date().toISOString(), mode: "live", sources, items: parsed.items, countryHotspots: [], connections: [] };
 }
