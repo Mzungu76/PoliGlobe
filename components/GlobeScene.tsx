@@ -11,6 +11,7 @@ import {
   CameraFlyTo,
   Entity,
   Globe,
+  ImageryLayer,
   LabelGraphics,
   PointGraphics,
   PolylineGraphics,
@@ -39,7 +40,17 @@ export function GlobeScene({
   );
 
   return (
-    <div style={{ position: "absolute", inset: 0 }}>
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        minHeight: "100vh",
+        overflow: "hidden",
+        background: "#020617",
+      }}
+    >
       <Viewer
         full
         animation={false}
@@ -55,8 +66,8 @@ export function GlobeScene({
         skyAtmosphere={false}
         shouldAnimate
         scene3DOnly
-        imageryProvider={imageryProvider}
       >
+        <ImageryLayer imageryProvider={imageryProvider} />
         <CameraFlyTo destination={initialPosition} duration={0} />
         <Globe enableLighting depthTestAgainstTerrain={false} />
 
